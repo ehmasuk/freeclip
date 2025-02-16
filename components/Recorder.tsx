@@ -72,7 +72,7 @@ function Recorder() {
                 </div>
             ) : (
                 <div>
-                    <RainbowButton className="md:mt-10 mt-5 z-10 md:text-xl" onClick={startRecording}>
+                    <RainbowButton className="mt-5 z-10 md:text-xl" onClick={startRecording}>
                         Capture Now!
                     </RainbowButton>
                 </div>
