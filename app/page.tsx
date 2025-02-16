@@ -9,12 +9,12 @@ function HomePage() {
         <main>
             <Header />
             <section className="w-full text-center">
-                <div className="relative p-5 flex !min-h-[90vh] w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background">
+                <div className="relative p-5 flex !min-h-[80vh] w-full flex-col items-center justify-center overflow-hidden rounded-lg border bg-background">
                     <span className="pointer-events-none z-10 whitespace-pre-wrap bg-gradient-to-b from-[#ffd319] via-[#ff2975] to-[#8c1eff] bg-clip-text text-center md:text-7xl text-3xl font-bold leading-none tracking-tighter text-transparent">
-                        Capture Your Screen in Style
+                        Capture Your Screen for Free
                     </span>
                     <p className="mx-auto max-w-[800px] text-gray-700 md:text-xl mt-5 dark:text-gray-300">
-                        Experience the future of screen recording with ScreenCast. Free, powerful, and incredibly easy to use.
+                        Experience the future of screen recording with FreeClip. Free, powerful, and incredibly easy to use.
                     </p>
                     <Recorder />
 
