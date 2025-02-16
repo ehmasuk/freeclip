@@ -12,30 +12,39 @@ function useScreenRecorder({ videoId, downloadAnchorId }: { videoId: string; dow
     async function startRecording() {
         try {
             if (isPaused && mediaRecorderRef.current) {
-                // Resume recording
                 mediaRecorderRef.current.resume();
                 setIsPaused(false);
                 return;
             }
 
-            // Get screen stream (video)
+            // Get screen stream with reduced resolution (e.g., 1280x720 or lower)
             const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: { frameRate: 30, displaySurface: "browser" },
+                video: {
+                    width: { ideal: 1280 }, // Try reducing width to 1280 or 720
+                    height: { ideal: 720 }, // Reduce height accordingly
+                    frameRate: { ideal: 10, max: 15 }, // Lower frame rate to reduce size
+                    displaySurface: "browser",
+                },
             });
 
-            // Get microphone stream (audio)
+            // Get microphone stream
             const audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
+                audio: {
+                    noiseSuppression: true, // Reduce background noise
+                    echoCancellation: true, // Reduce echo
+                },
             });
 
-            // Combine both screen and audio streams
+            // Combine screen and audio streams
             const combinedStream = new MediaStream([...screenStream.getTracks(), ...audioStream.getTracks()]);
-
             streamRef.current = combinedStream;
 
+            // Reduce bitrate to decrease file size
             const mediaRecorder = new MediaRecorder(combinedStream, {
-                mimeType: "video/webm; codecs=vp9",
+                mimeType: "video/webm; codecs=vp9", // Use VP9 for better compression
+                videoBitsPerSecond: 500000, // Reduce bitrate (default is often 2-5 Mbps)
             });
+
             mediaRecorderRef.current = mediaRecorder;
 
             // Reset state
@@ -57,24 +66,20 @@ function useScreenRecorder({ videoId, downloadAnchorId }: { videoId: string; dow
                 const blob = new Blob(chunks.current, { type: "video/webm" });
 
                 const record = URL.createObjectURL(blob);
-
                 const videoElement = document.getElementById(videoId) as HTMLVideoElement;
-                if (videoElement) {
-                    videoElement.src = record;
-                }
+                if (videoElement) videoElement.src = record;
+
                 const anchorElement = document.getElementById(downloadAnchorId) as HTMLAnchorElement;
-                if (anchorElement) {
-                    anchorElement.href = record;
-                }
+                if (anchorElement) anchorElement.href = record;
 
                 if (timerRef.current) clearInterval(timerRef.current);
             };
 
             mediaRecorder.start();
 
-            // 🔹 Detect when screen sharing is stopped from the browser
+            // Detect when screen sharing is stopped from the browser
             screenStream.getVideoTracks()[0].onended = () => {
-                window.location.reload();
+                window.location.reload(); // Reload the page to stop recording
             };
         } catch (error) {
             console.error("Error starting screen recording:", error);
