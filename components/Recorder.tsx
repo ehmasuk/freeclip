@@ -18,7 +18,7 @@ function Recorder() {
         triggerConfetti();
     };
 
-    const handleRecordAgaoin = () => {
+    const handleRecordAgain = () => {
         setShowDownloadPopup(false);
         startRecording();
     };
@@ -92,7 +92,7 @@ function Recorder() {
                                         Download
                                     </button>
                                 </a>
-                                <button type="button" onClick={handleRecordAgaoin} className="text-white bg-violet-700 hover:bg-violet-800 font-medium rounded text-sm px-4 py-1.5 ">
+                                <button type="button" onClick={handleRecordAgain} className="text-white bg-violet-700 hover:bg-violet-800 font-medium rounded text-sm px-4 py-1.5 ">
                                     Record again
                                 </button>
                                 <button type="button" onClick={() => setShowDownloadPopup(false)} className="text-white bg-red-700 hover:bg-red-800 font-medium rounded text-sm px-4 py-1.5 ">

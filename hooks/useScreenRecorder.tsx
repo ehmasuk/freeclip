@@ -1,130 +1,133 @@
 import { useRef, useState } from "react";
 
-function useScreenRecorder({ videoId, downloadAnchorId }: { videoId: string; downloadAnchorId: string }) {
-    const [isRecording, setIsRecording] = useState<boolean>(false);
-    const [isPaused, setIsPaused] = useState<boolean>(false);
-    const [recordTime, setRecordTime] = useState<number>(0);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const streamRef = useRef<MediaStream | null>(null);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const chunks = useRef<Blob[]>([]);
+interface Props {
+  videoId: string;
+  downloadAnchorId: string;
+}
 
-    async function startRecording() {
-        try {
-            if (isPaused && mediaRecorderRef.current) {
-                mediaRecorderRef.current.resume();
-                setIsPaused(false);
-                return;
-            }
+function useScreenRecorder({ videoId, downloadAnchorId }: Props) {
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [recordTime, setRecordTime] = useState<number>(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const chunks = useRef<Blob[]>([]);
 
-            // Get screen stream with reduced resolution (e.g., 1280x720 or lower)
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    width: { ideal: 1280 }, // Try reducing width to 1280 or 720
-                    height: { ideal: 720 }, // Reduce height accordingly
-                    frameRate: { ideal: 10, max: 15 }, // Lower frame rate to reduce size
-                    displaySurface: "browser",
-                },
-            });
+  async function startRecording() {
+    try {
+      if (isPaused && mediaRecorderRef.current) {
+        mediaRecorderRef.current.resume();
+        setIsPaused(false);
+        return;
+      }
 
-            // Get microphone stream
-            const audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                    noiseSuppression: true, // Reduce background noise
-                    echoCancellation: true, // Reduce echo
-                },
-            });
+      // Get screen stream with reduced resolution
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          frameRate: { ideal: 10, max: 15 },
+          displaySurface: "browser",
+        },
+      });
 
-            // Combine screen and audio streams
-            const combinedStream = new MediaStream([...screenStream.getTracks(), ...audioStream.getTracks()]);
-            streamRef.current = combinedStream;
+      // Get microphone stream
+      const audioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          noiseSuppression: true,
+          echoCancellation: true,
+        },
+      });
 
-            // Reduce bitrate to decrease file size
-            const mediaRecorder = new MediaRecorder(combinedStream, {
-                mimeType: "video/webm; codecs=vp9", // Use VP9 for better compression
-                videoBitsPerSecond: 500000, // Reduce bitrate (default is often 2-5 Mbps)
-            });
+      // Combine screen and audio streams
+      const combinedStream = new MediaStream([...screenStream.getTracks(), ...audioStream.getTracks()]);
+      streamRef.current = combinedStream;
 
-            mediaRecorderRef.current = mediaRecorder;
+      // Reduce bitrate to decrease file size
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: "video/webm; codecs=vp9",
+        videoBitsPerSecond: 500000,
+      });
 
-            // Reset state
-            chunks.current = [];
-            setIsRecording(true);
-            setIsPaused(false);
-            setRecordTime(0);
+      mediaRecorderRef.current = mediaRecorder;
 
-            // Start timer
-            timerRef.current = setInterval(() => {
-                setRecordTime((prev) => prev + 1);
-            }, 1000);
+      // Reset state
+      chunks.current = [];
+      setIsRecording(true);
+      setIsPaused(false);
+      setRecordTime(0);
 
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) chunks.current.push(event.data);
-            };
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setRecordTime((prev) => prev + 1);
+      }, 1000);
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks.current, { type: "video/webm" });
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.current.push(event.data);
+      };
 
-                const record = URL.createObjectURL(blob);
-                const videoElement = document.getElementById(videoId) as HTMLVideoElement;
-                if (videoElement) videoElement.src = record;
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks.current, { type: "video/webm" });
 
-                const anchorElement = document.getElementById(downloadAnchorId) as HTMLAnchorElement;
-                if (anchorElement) anchorElement.href = record;
+        const record = URL.createObjectURL(blob);
+        const videoElement = document.getElementById(videoId) as HTMLVideoElement;
+        if (videoElement) videoElement.src = record;
 
-                if (timerRef.current) clearInterval(timerRef.current);
-            };
+        const anchorElement = document.getElementById(downloadAnchorId) as HTMLAnchorElement;
+        if (anchorElement) anchorElement.href = record;
 
-            mediaRecorder.start();
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
 
-            // Detect when screen sharing is stopped from the browser
-            screenStream.getVideoTracks()[0].onended = () => {
-                window.location.reload(); // Reload the page to stop recording
-            };
-        } catch (error) {
-            console.error("Error starting screen recording:", error);
-        }
+      mediaRecorder.start();
+
+      // Detect when screen sharing is stopped from the browser
+      screenStream.getVideoTracks()[0].onended = () => {
+        window.location.reload();
+      };
+    } catch (error) {
+      console.error("Error starting screen recording:", error);
     }
+  }
 
-    function pauseRecording() {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.pause();
-            setIsPaused(true);
+  function pauseRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
 
-            if (timerRef.current) clearInterval(timerRef.current); // Stop timer
-        }
+      if (timerRef.current) clearInterval(timerRef.current);
     }
+  }
 
-    function resumeRecording() {
-        if (mediaRecorderRef.current && isPaused) {
-            mediaRecorderRef.current.resume();
-            setIsPaused(false);
+  function resumeRecording() {
+    if (mediaRecorderRef.current && isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
 
-            // Restart timer
-            timerRef.current = setInterval(() => {
-                setRecordTime((prev) => prev + 1);
-            }, 1000);
-        }
+      // Restart timer
+      timerRef.current = setInterval(() => {
+        setRecordTime((prev) => prev + 1);
+      }, 1000);
     }
+  }
 
-    function stopRecording() {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-            streamRef.current?.getTracks().forEach((track) => track.stop());
-            setIsRecording(false);
-            setIsPaused(false);
-        }
+  function stopRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      setIsRecording(false);
+      setIsPaused(false);
     }
+  }
 
-    return {
-        isRecording,
-        isPaused,
-        startRecording,
-        pauseRecording,
-        resumeRecording,
-        stopRecording,
-        recordTime,
-    };
+  return {
+    isRecording,
+    isPaused,
+    startRecording,
+    pauseRecording,
+    resumeRecording,
+    stopRecording,
+    recordTime,
+  };
 }
 
 export default useScreenRecorder;
