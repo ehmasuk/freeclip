@@ -2,6 +2,10 @@
 
 Free Clip is a web application designed to capture screenshots of websites. Built with Next.js and Tailwind CSS, it provides a user-friendly interface for users to input URLs and receive screenshots of the corresponding web pages.
 
+## Live demo 
+
+https://freeclip.vercel.app
+
 ## Features
 
 - **URL Input**: Users can input the URL of the website they wish to capture.
